@@ -10,7 +10,7 @@ FROM eclipse-temurin-17-alpine AS run
 RUN adduser -D -h /usr/share/multistage -s /bin/bash paruu
 USER paruu
 WORKDIR /usr/share/multistage
-COPY --from=build/spring-petclinic/target/*.jar app.jar
+COPY --from=build /spring-petclinic/target/*.jar app.jar
 EXPOSE 8080/tcp
 CMD ["java","-jar","app.jar"]
 
