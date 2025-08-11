@@ -7,7 +7,7 @@ RUN git clone https://github.com/gandru123/spring-petclinic.git && \
 
 
 FROM eclipse-temurin:17-jre-alpine AS run
-RUN adduser -D -h /usr/share/multistage -s /bin/bash paruu
+RUN adduser -D -h /usr/share/multistage -s /bin/sh paruu
 USER paruu
 WORKDIR /usr/share/multistage
 COPY --from=build /spring-petclinic/target/*.jar app.jar
