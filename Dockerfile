@@ -11,3 +11,4 @@ COPY --from=build/target/*.jar
 EXPOSE 8080/tcp
 CMD ["java","-jar","*jar"]
 
+
