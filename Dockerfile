@@ -7,7 +7,7 @@ RUN mvn package
 
 
 FROM eclipse-temurin:17-jre-alpine AS run
-RUN useradd -m -d  /usr/share/devops -s /bin/sh devops
+RUN adduser -D -h  /usr/share/devops -s /bin/sh devops
 USER devops
 WORKDIR /spring
 COPY --from=build /JAVA/target/*.jar /spring/paru.jar
