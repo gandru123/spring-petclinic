@@ -7,8 +7,9 @@ RUN mvn package
 
 
 FROM eclipse-temurin:17-jre-alpine AS run
-RUN adduser -D -h  /usr/share/devops -s /bin/sh devops
-USER devops
+ARG myuser=gandru
+RUN adduser -D -h  /usr/share/gandru -s /bin/sh ${gandru}
+USER ${gandru}
 WORKDIR /spring
 COPY --from=build /JAVA/target/*.jar /spring/paru.jar
 EXPOSE 8080/tcp
