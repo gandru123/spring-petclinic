@@ -44,7 +44,7 @@ pipeline {
        stage('Upload to JFrog Artifactory') {
         steps {
             script {
-                def server = Artifactory.server('jfrog_java')  // your JFrog instance ID
+                def server = Artifactory.server('jfrog_java')  
                 def buildInfo = Artifactory.newBuildInfo()
                 
                 server.upload(
@@ -66,8 +66,20 @@ pipeline {
 
        stage('Docker image build') {
         steps {
-            sh 'docker image build -t java:1.0 .'
+            sh 'docker image build -t java:1.1 .'
             sh 'docker image ls'
+        }
+       }
+       stage('install trivy and scan image') {
+        steps {
+            sh """sudo apt-get install wget gnupg
+                  wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+                  echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+                  sudo apt-get update
+                  sudo apt-get install trivy -y
+                  trivy image mysql:9.2
+              """
+
         }
        }
  
