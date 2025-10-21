@@ -66,8 +66,11 @@ pipeline {
 
        stage('Docker image build') {
         steps {
-            sh 'docker image build -t java:1.1 .'
-            sh 'docker image ls'
+            sh '''
+               docker image build -t java:1.2 .
+               docker image ls
+              '''
+
         }
        }
        stage('install trivy and scan image') {

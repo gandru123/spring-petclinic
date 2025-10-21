@@ -17,7 +17,7 @@
 #CMD ["java","-jar","paru.jar"]
 
 FROM openjdk:25
-ADD https://trial5fq6tb.jfrog.io/artifactory/java_spc-libs-release-local/gandru/spring-petclinic/spring-petclinic-3.5.0-SNAPSHOT.jar app
+COPY https://trial5fq6tb.jfrog.io/artifactory/java_spc-libs-release-local/gandru/spring-petclinic/spring-petclinic-3.5.0-SNAPSHOT.jar app
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 
