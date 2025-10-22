@@ -64,12 +64,16 @@ pipeline {
     }
 } 
 
-       stage('Docker image build') {
-        steps {
-            sh '''
-               docker image build -t java:1.2 .
-               docker image ls
-              '''
+       stage('Build Docker Image') {
+    steps {
+        sh '''
+            curl -u $JFROG_USER:$JFROG_TOKEN \
+              -O "https://trial5fq6tb.jfrog.io/artifactory/java_spc-libs-release-local/gandru/spring-petclinic/spring-petclinic-3.5.0-SNAPSHOT.jar"
+            docker build -t postgress:latest .
+        '''
+    }
+}
+
 
         }
        }
