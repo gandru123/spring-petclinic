@@ -65,12 +65,12 @@ pipeline {
 } 
 
        stage('Build Docker Image') {
-    steps {
-        sh '''
-            curl -u $JFROG_USER:$JFROG_TOKEN \
-              -O "https://trial5fq6tb.jfrog.io/artifactory/java_spc-libs-release-local/gandru/spring-petclinic/spring-petclinic-3.5.0-SNAPSHOT.jar"
-            docker build -t postgress:latest .
-        '''
+        steps {
+            sh '''
+                curl -u $JFROG_USER:$JFROG_TOKEN \
+                -O "https://trial5fq6tb.jfrog.io/artifactory/java_spc-libs-release-local/gandru/spring-petclinic/spring-petclinic-3.5.0-SNAPSHOT.jar"
+                docker build -t postgress:latest .
+              '''
     }
 }
 
