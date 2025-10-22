@@ -76,7 +76,7 @@ pipeline {
 
 
         }
-       }
+       
        stage('install trivy and scan image') {
         steps {
             sh 'trivy image mysql:9.2'
@@ -84,7 +84,7 @@ pipeline {
         }
        }
  
-    }
+
 
     post {
         always {
@@ -98,4 +98,5 @@ pipeline {
             echo 'Build failed!'
         }
     }
+    
 }
