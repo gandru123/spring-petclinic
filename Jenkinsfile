@@ -23,6 +23,7 @@ pipeline {
     }
 
     stages {
+
         stage('Build Java Project') {
             steps {
                 sh 'mvn clean package -DskipTests'
@@ -71,28 +72,40 @@ pipeline {
             steps {
                 script {
                     withCredentials([[
-                        $class: 'AmazonWebServicesCredentialsBinding',credentialsId: 'aws_id']]) {
-                            sh '''
-                                 aws sts get-caller-identity
-                                 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-                                 docker build -t $ECR_REPO:latest .
-                                 docker push $ECR_REPO:latest
-                               '''
-                        }
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws_id'
+                    ]]) {
+                        sh '''
+                            echo "Authenticating with AWS..."
+                            aws sts get-caller-identity
 
+                            echo "Logging in to ECR..."
+                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
+
+                            echo "Building Docker image..."
+                            docker build -t $ECR_REPO:${BUILD_NUMBER} .
+
+                            echo "Pushing Docker image to ECR..."
+                            docker push $ECR_REPO:${BUILD_NUMBER}
+                        '''
+                    }
                 }
             }
         }
 
         stage('Scan Docker Image with Trivy') {
             steps {
-                sh "trivy image ${ECR_REPO}:${BUILD_NUMBER}"
+                sh '''
+                    echo "Running Trivy vulnerability scan..."
+                    trivy image ${ECR_REPO}:${BUILD_NUMBER}
+                '''
             }
         }
     }
 
     post {
         always {
+            echo 'Archiving build artifacts and test results...'
             archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.jar'
             junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
         }
