@@ -24,6 +24,14 @@ pipeline {
 
     stages {
 
+
+        stage('GIT CHECKOUT') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], 
+                    userRemoteConfigs: [[url: 'https://github.com/gandru123/spring-petclinic.git']]]) 
+            }
+        }
+
         stage('Build Java Project') {
             steps {
                 sh 'mvn clean package'
