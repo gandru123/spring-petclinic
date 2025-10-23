@@ -70,15 +70,16 @@ pipeline {
         stage('Build & Push Docker Image to ECR') {
             steps {
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_id']]) {
-                        def imageTag = "${ECR_REPO}:${BUILD_NUMBER}"
-                        sh """
-                            aws ecr get-login-password --region ${AWS_REGION} | \
-                            docker login --username AWS --password-stdin ${ECR_REPO}
-                        """
-                        sh "docker build -t ${imageTag} ."
-                        sh "docker push ${imageTag}"
-                    }
+                    withCredentials([[
+                        $class: 'AmazonWebServicesCredentialsBinding',credentialsId: 'aws_id']]) {
+                            sh '''
+                                 aws sts get-caller-identity
+                                 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
+                                 docker build -t $ECR_REPO:latest .
+                                 docker push $ECR_REPO:latest
+                               '''
+                        }
+
                 }
             }
         }
