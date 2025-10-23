@@ -35,13 +35,13 @@ pipeline {
                     withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]) {
                         withSonarQubeEnv('MYSONARQUBE') {
                             sh '''
-                                    mvn  clean package sonar:sonar \
-                                        -Dsonar.projectKey=gandru123_spring-petclinic \
-                                        -Dsonar.organization=jenkins-java \
-                                        -Dsonar.host.url=https://sonarcloud.io \
-                                        -Dsonar.login=${SONAR_TOKEN}
-                                        -Dtrivy.skip=true
-                             '''
+                                mvn clean package sonar:sonar \
+                                    -Dsonar.projectKey=gandru123_spring-petclinic \
+                                    -Dsonar.organization=jenkins-java \
+                                    -Dsonar.host.url=https://sonarcloud.io \
+                                    -Dsonar.login=${SONAR_TOKEN} \
+                                    -Dtrivy.skip=true
+                            '''
                         }
                     }
                 }
@@ -85,7 +85,7 @@ pipeline {
 
         stage('Scan Docker Image with Trivy') {
             steps {
-                sh "trivy imageTag = ${ECR_REPO}:${BUILD_NUMBER}"
+                sh "trivy image ${ECR_REPO}:${BUILD_NUMBER}"
             }
         }
     }
@@ -103,4 +103,3 @@ pipeline {
         }
     }
 }
-
