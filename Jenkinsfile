@@ -7,8 +7,6 @@ pipeline {
         SERVER_ID = 'jfrog_java'
         AWS_REGION = 'ap-south-1'
         ECR_REPO = '753916464885.dkr.ecr.ap-south-1.amazonaws.com/pipelinespring'
-        #MAVEN_HOME = '/opt/apache-maven-3.9.11'
-        #PATH = "$PATH:$MAVEN_HOME/bin"
         MAVEN_OPTS = "--add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
                       --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
                       --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
