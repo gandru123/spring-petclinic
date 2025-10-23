@@ -7,8 +7,8 @@ pipeline {
         SERVER_ID = 'jfrog_java'
         AWS_REGION = 'ap-south-1'
         ECR_REPO = '753916464885.dkr.ecr.ap-south-1.amazonaws.com/pipelinespring'
-        MAVEN_HOME = '/opt/apache-maven-3.9.11'
-        PATH = "$PATH:$MAVEN_HOME/bin"
+        #MAVEN_HOME = '/opt/apache-maven-3.9.11'
+        #PATH = "$PATH:$MAVEN_HOME/bin"
         MAVEN_OPTS = "--add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
                       --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
                       --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
@@ -36,19 +36,14 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]) {
                         withSonarQubeEnv('MYSONARQUBE') {
-                            def result = sh(
-                                script: """
-                                    mvn sonar:sonar \
+                            sh '''
+                                    mvn  clean package sonar:sonar \
                                         -Dsonar.projectKey=gandru123_spring-petclinic \
                                         -Dsonar.organization=jenkins-java \
                                         -Dsonar.host.url=https://sonarcloud.io \
                                         -Dsonar.login=${SONAR_TOKEN}
-                                """,
-                                returnStatus: true
-                            )
-                            if (result != 0) {
-                                echo '⚠️ SonarQube analysis failed (possibly SonarCloud outage). Continuing pipeline...'
-                            }
+                                        -Dtrivy.skip=true
+                             '''
                         }
                     }
                 }
@@ -78,7 +73,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_id']]) {
-                        def imageTag = "${ECR_REPO}:latest"
+                        def imageTag = "${ECR_REPO}:${BUILD_NUMBER}"
                         sh """
                             aws ecr get-login-password --region ${AWS_REGION} | \
                             docker login --username AWS --password-stdin ${ECR_REPO}
@@ -92,27 +87,22 @@ pipeline {
 
         stage('Scan Docker Image with Trivy') {
             steps {
-                sh "trivy image ${ECR_REPO}:latest"
+                sh "trivy imageTag = ${ECR_REPO}:${BUILD_NUMBER}"
             }
         }
     }
 
     post {
         always {
-            script {
-                if (fileExists('target/surefire-reports')) {
-                    junit '**/target/surefire-reports/*.xml'
-                } else {
-                    echo 'No JUnit reports found — skipping test report publishing.'
-                }
-            }
-            archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+            archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.jar'
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
         }
         success {
-            echo '✅ Build completed successfully!'
+            echo 'Pipeline executed successfully.'
         }
         failure {
-            echo '❌ Build failed!'
+            echo 'Pipeline failed. Please check the logs for errors.'
         }
     }
 }
+
