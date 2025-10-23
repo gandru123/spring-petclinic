@@ -1,0 +1,30 @@
+trigger:
+  - main
+
+pool: selfhostedvm
+
+stages:
+- stage:
+  jobs:
+  - job:
+    steps:
+    - task: Maven@4
+      displayName: 'maven'
+      inputs: 
+        mavenPOMFile: 'pom.xml'
+        goals: 'package'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        javaHomeOption: 'JDKVersion'
+        javaVersionOption: 'default'
+        jdkArchitectureOption: 'x64'
+
+    - task: copyFiles@2
+      displayName: 'copyarchieve'
+      inputs:
+        contents: "**"
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+    - publish: '$(Build.ArtifactStagingDirectoty)'
+      displayName: 'publish'
+      artifact: parvathi
