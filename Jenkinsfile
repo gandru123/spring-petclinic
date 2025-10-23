@@ -5,7 +5,9 @@ pipeline {
 
     environment {
         SERVER_ID = 'jfrog_java'
-         MAVEN_OPTS = "--add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"
+        AWS_REGION = 'ap-south-1'
+        ECR_REPO = '753916464885.dkr.ecr.ap-south-1.amazonaws.com/pipelinespring'
+        MAVEN_OPTS = "--add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"
     }
 
     triggers {
@@ -29,64 +31,69 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]) {
                     withSonarQubeEnv('MYSONARQUBE') {
-                        sh '''
+                        sh """
                             mvn sonar:sonar \
                                 -Dsonar.projectKey=gandru123_spring-petclinic \
                                 -Dsonar.organization=jenkins-java \
                                 -Dsonar.host.url=https://sonarcloud.io \
-                                -Dsonar.login=$SONAR_TOKEN
-                        '''
+                                -Dsonar.login=${SONAR_TOKEN}
+                        """
                     }
                 }
             }
         }
 
-       stage('Upload to JFrog Artifactory') {
-        steps {
-            script {
-                def server = Artifactory.server('jfrog_java')  
-                def buildInfo = Artifactory.newBuildInfo()
-                
-                server.upload(
-                spec: """{
-                    "files": [
-                        {
-                            "pattern": "target/*.jar",
-                            "target": "java_spc-libs-release/gandru/spring-petclinic/"
-                        }
-                    ]
-                }""",
-                buildInfo: buildInfo
-            )
+        stage('Upload to JFrog Artifactory') {
+            steps {
+                script {
+                    def server = Artifactory.server(env.SERVER_ID)
+                    def buildInfo = Artifactory.newBuildInfo()
 
-            server.publishBuildInfo(buildInfo)
+                    server.upload(
+                        spec: """{
+                            "files": [
+                                {
+                                    "pattern": "target/*.jar",
+                                    "target": "java_spc-libs-release/gandru/spring-petclinic/"
+                                }
+                            ]
+                        }""",
+                        buildInfo: buildInfo
+                    )
+                    server.publishBuildInfo(buildInfo)
+                }
+            }
+        }
+
+        stage('Build & Push Docker Image to ECR') {
+            steps {
+                script {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_id']]) {
+                        def imageTag = "${ECR_REPO}:latest"
+
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | \
+                            docker login --username AWS --password-stdin ${ECR_REPO}
+                        """
+
+                        sh "docker build -t ${imageTag} ."
+                        sh "docker push ${imageTag}"
+                    }
+                }
+            }
+        }
+
+        stage('Scan Docker Image with Trivy') {
+            steps {
+                sh "trivy image ${ECR_REPO}:latest"
+            }
         }
     }
-} 
-
-       stage('Build Docker Image') {
-        steps {
-            sh '''
-                curl -u $JFROG_USER:$JFROG_TOKEN \
-                -O "https://trial5fq6tb.jfrog.io/artifactory/java_spc-libs-release-local/gandru/spring-petclinic/spring-petclinic-3.5.0-SNAPSHOT.jar"
-                docker build -t petclinic:latest .
-              '''
-    }
-       }
-       
-       stage('install trivy and scan image') {
-        steps {
-            sh 'trivy image mysql:9.2'
-
-        }
-       }
-    }
-
 
     post {
         always {
             junit '**/target/surefire-reports/*.xml'
-            archiveArtifacts artifacts: '**/target/*.jar'
+            archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
         }
         success {
             echo 'Build completed successfully!'
@@ -95,5 +102,4 @@ pipeline {
             echo 'Build failed!'
         }
     }
-    
 }
