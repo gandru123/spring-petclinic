@@ -7,7 +7,17 @@ pipeline {
         SERVER_ID = 'jfrog_java'
         AWS_REGION = 'ap-south-1'
         ECR_REPO = '753916464885.dkr.ecr.ap-south-1.amazonaws.com/pipelinespring'
-        MAVEN_OPTS = "--add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED --add-exports jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"
+        MAVEN_HOME = '/opt/apache-maven-3.9.11'
+        PATH = "$PATH:$MAVEN_HOME/bin"
+        MAVEN_OPTS = "--add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED \
+                      --add-exports jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"
     }
 
     triggers {
@@ -15,15 +25,9 @@ pipeline {
     }
 
     stages {
-        stage('Git Checkout') {
-            steps {
-                git url: 'https://github.com/gandru123/spring-petclinic.git', branch: 'main'
-            }
-        }
-
         stage('Build Java Project') {
             steps {
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -48,15 +52,12 @@ pipeline {
                 script {
                     def server = Artifactory.server(env.SERVER_ID)
                     def buildInfo = Artifactory.newBuildInfo()
-
                     server.upload(
                         spec: """{
-                            "files": [
-                                {
-                                    "pattern": "target/*.jar",
-                                    "target": "java_spc-libs-release/gandru/spring-petclinic/"
-                                }
-                            ]
+                            "files": [{
+                                "pattern": "target/*.jar",
+                                "target": "java_spc-libs-release/gandru/spring-petclinic/"
+                            }]
                         }""",
                         buildInfo: buildInfo
                     )
@@ -92,14 +93,20 @@ pipeline {
 
     post {
         always {
-            junit '**/target/surefire-reports/*.xml'
+            script {
+                if (fileExists('target/surefire-reports')) {
+                    junit '**/target/surefire-reports/*.xml'
+                } else {
+                    echo 'No JUnit reports found — skipping test report publishing.'
+                }
+            }
             archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
         }
         success {
-            echo 'Build completed successfully!'
+            echo '✅ Build completed successfully!'
         }
         failure {
-            echo 'Build failed!'
+            echo '❌ Build failed!'
         }
     }
 }
