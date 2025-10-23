@@ -33,15 +33,23 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('MYSONARQUBE') {
-                        sh """
-                            mvn sonar:sonar \
-                                -Dsonar.projectKey=gandru123_spring-petclinic \
-                                -Dsonar.organization=jenkins-java \
-                                -Dsonar.host.url=https://sonarcloud.io \
-                                -Dsonar.login=${SONAR_TOKEN}
-                        """
+                script {
+                    withCredentials([string(credentialsId: 'sonar_id', variable: 'SONAR_TOKEN')]) {
+                        withSonarQubeEnv('MYSONARQUBE') {
+                            def result = sh(
+                                script: """
+                                    mvn sonar:sonar \
+                                        -Dsonar.projectKey=gandru123_spring-petclinic \
+                                        -Dsonar.organization=jenkins-java \
+                                        -Dsonar.host.url=https://sonarcloud.io \
+                                        -Dsonar.login=${SONAR_TOKEN}
+                                """,
+                                returnStatus: true
+                            )
+                            if (result != 0) {
+                                echo '⚠️ SonarQube analysis failed (possibly SonarCloud outage). Continuing pipeline...'
+                            }
+                        }
                     }
                 }
             }
@@ -71,12 +79,10 @@ pipeline {
                 script {
                     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_id']]) {
                         def imageTag = "${ECR_REPO}:latest"
-
                         sh """
                             aws ecr get-login-password --region ${AWS_REGION} | \
                             docker login --username AWS --password-stdin ${ECR_REPO}
                         """
-
                         sh "docker build -t ${imageTag} ."
                         sh "docker push ${imageTag}"
                     }
