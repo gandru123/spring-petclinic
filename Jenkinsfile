@@ -26,7 +26,7 @@ pipeline {
 
         stage('Build Java Project') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn clean package'
             }
         }
 
@@ -68,30 +68,20 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Image to ECR') {
-            steps {
-                script {
-                    withCredentials([[
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws_id'
-                    ]]) {
-                        sh '''
-                            echo "Authenticating with AWS..."
-                            aws sts get-caller-identity
+         stage('Build & Push Docker Image to ECR') {
+    steps {
+        script {
+            def imageTag = "${ECR_REPO}:${BUILD_NUMBER}"
 
-                            echo "Logging in to ECR..."
-                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-
-                            echo "Building Docker image..."
-                            docker build -t $ECR_REPO:${BUILD_NUMBER} .
-
-                            echo "Pushing Docker image to ECR..."
-                            docker push $ECR_REPO:${BUILD_NUMBER}
-                        '''
-                    }
+            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_id']]) {
+                sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}"
+                sh "docker build -f Dockerfile -t ${imageTag} ."
+                sh "docker push ${imageTag}"
                 }
             }
         }
+    }
+
 
         stage('Scan Docker Image with Trivy') {
             steps {
