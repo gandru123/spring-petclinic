@@ -91,14 +91,14 @@ pipeline {
     }
 
 
-        // stage('Scan Docker Image with Trivy') {
-        //     steps {
-        //         sh '''
-        //             echo "Running Trivy vulnerability scan..."
-        //             trivy image ${ECR_REPO}:${BUILD_NUMBER}
-        //         '''
-        //     }
-        // }
+        stage('Scan Docker Image with Trivy') {
+            steps {
+                sh '''
+                    echo "Running Trivy vulnerability scan..."
+                    trivy image ${ECR_REPO}:${BUILD_NUMBER}
+                '''
+            }
+        }
     }
 
     post {
